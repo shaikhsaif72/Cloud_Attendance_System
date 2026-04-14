@@ -1,29 +1,28 @@
 """
-Django settings for Cloud Attendance System - Enhanced Edition
-Python 3.12 / Django 5.0 compatible
+Django settings for Cloud Attendance System - Render Ready
 """
+
 import os
 from pathlib import Path
 import dj_database_url
-
 from dotenv import load_dotenv
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 
-# Load .env from the project root.
-# override=False means existing OS env vars (e.g. set by Elastic Beanstalk)
-# always win over .env values, so this file is safe to use in all environments.
+# Load .env
 load_dotenv(BASE_DIR / '.env', override=False)
 
+# SECURITY
 SECRET_KEY = os.environ.get(
     'SECRET_KEY',
-    'django-insecure-8+%^jq#ilmh)r=-c6b1^br5j1scqu%keo31$jv=$wrv7@+82mu'
+    'django-insecure-temp-key'
 )
 
-DEBUG = os.environ.get('DEBUG', 'True') == 'True'
+DEBUG = os.environ.get('DEBUG', 'False') == 'True'
 
 ALLOWED_HOSTS = os.environ.get('ALLOWED_HOSTS', '*').split(',')
 
+# APPLICATIONS
 INSTALLED_APPS = [
     'django.contrib.admin',
     'django.contrib.auth',
@@ -31,16 +30,20 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+
     'corsheaders',
     'rest_framework',
     'rest_framework.authtoken',
+
     'api_v1',
 ]
 
+# MIDDLEWARE
 MIDDLEWARE = [
     'corsheaders.middleware.CorsMiddleware',
     'django.middleware.security.SecurityMiddleware',
     'whitenoise.middleware.WhiteNoiseMiddleware',
+
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
@@ -51,6 +54,7 @@ MIDDLEWARE = [
 
 ROOT_URLCONF = 'Attendance_System.urls'
 
+# TEMPLATES
 TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
@@ -70,26 +74,12 @@ TEMPLATES = [
 
 WSGI_APPLICATION = 'Attendance_System.wsgi.application'
 
-# Database — RDS MySQL in production, SQLite locally
-if 'RDS_HOSTNAME' in os.environ:
-    DATABASES = {
-        'default': {
-            'ENGINE': 'django.db.backends.mysql',
-            'NAME': os.environ['RDS_DB_NAME'],
-            'USER': os.environ['RDS_USERNAME'],
-            'PASSWORD': os.environ['RDS_PASSWORD'],
-            'HOST': os.environ['RDS_HOSTNAME'],
-            'PORT': os.environ['RDS_PORT'],
-            'OPTIONS': {'charset': 'utf8mb4'},
-        }
-    }
-else:
-    DATABASES = {
-    'default': dj_database_url.parse('postgresql://attendance_db_7yoa_user:pALMb2jtSmSnVxZDBJEwN1o4FDFCezfB@dpg-d7c01nnavr4c73a0e190-a.singapore-postgres.render.com/attendance_db_7yoa')
+# DATABASE (Render PostgreSQL)
+DATABASES = {
+    'default': dj_database_url.parse(os.getenv('DATABASE_URL'))
 }
 
-DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
-
+# PASSWORD VALIDATION
 AUTH_PASSWORD_VALIDATORS = [
     {'NAME': 'django.contrib.auth.password_validation.UserAttributeSimilarityValidator'},
     {'NAME': 'django.contrib.auth.password_validation.MinimumLengthValidator'},
@@ -97,11 +87,38 @@ AUTH_PASSWORD_VALIDATORS = [
     {'NAME': 'django.contrib.auth.password_validation.NumericPasswordValidator'},
 ]
 
+# LANGUAGE & TIME
 LANGUAGE_CODE = 'en-us'
 TIME_ZONE = 'UTC'
 USE_I18N = True
 USE_TZ = True
 
+DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
+
+# STATIC FILES
+STATIC_URL = '/static/'
+STATICFILES_DIRS = [BASE_DIR / 'static']
+STATIC_ROOT = BASE_DIR / 'staticfiles'
+
+STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
+
+# MEDIA
+MEDIA_URL = '/media/'
+MEDIA_ROOT = BASE_DIR / 'media'
+
+# AUTH
+AUTHENTICATION_BACKENDS = [
+    'django.contrib.auth.backends.ModelBackend',
+]
+
+LOGIN_URL = '/accounts/login/'
+LOGIN_REDIRECT_URL = '/dashboard/'
+LOGOUT_REDIRECT_URL = '/accounts/login/'
+
+# CORS
+CORS_ALLOW_ALL_ORIGINS = True
+
+# REST FRAMEWORK
 REST_FRAMEWORK = {
     'DATETIME_FORMAT': '%Y-%m-%d %H:%M:%S UTC',
     'DEFAULT_AUTHENTICATION_CLASSES': (
@@ -115,28 +132,7 @@ REST_FRAMEWORK = {
     'PAGE_SIZE': 20,
 }
 
-STATIC_URL = '/static/'
-STATICFILES_DIRS = [BASE_DIR / 'static']
-STATIC_ROOT = BASE_DIR / 'staticfiles'
-STATICFILES_STORAGE = 'whitenoise.storage.CompressedStaticFilesStorage'
-
-MEDIA_URL = '/media/'
-MEDIA_ROOT = BASE_DIR / 'media'
-
-AUTHENTICATION_BACKENDS = [
-    'django.contrib.auth.backends.ModelBackend',
-]
-
-LOGIN_URL = '/accounts/login/'
-LOGIN_REDIRECT_URL = '/dashboard/'
-LOGOUT_REDIRECT_URL = '/accounts/login/'
-
-CORS_ALLOW_ALL_ORIGINS = True
-
-# ── Email ─────────────────────────────────────────────────────────────────────
-# Set EMAIL_HOST (and friends) via environment variables to use any SMTP
-# provider (Gmail, Outlook, Mailgun, SendGrid, etc.).
-# If EMAIL_HOST is not set, emails are printed to the console (dev mode).
+# EMAIL (DEV MODE)
 if os.environ.get('EMAIL_HOST'):
     EMAIL_BACKEND  = 'django.core.mail.backends.smtp.EmailBackend'
     EMAIL_HOST     = os.environ['EMAIL_HOST']
@@ -146,24 +142,15 @@ if os.environ.get('EMAIL_HOST'):
     EMAIL_HOST_USER     = os.environ.get('EMAIL_HOST_USER', '')
     EMAIL_HOST_PASSWORD = os.environ.get('EMAIL_HOST_PASSWORD', '')
 else:
-    # Development fallback — prints emails to the console
     EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
 
 DEFAULT_FROM_EMAIL = os.environ.get(
     'DEFAULT_FROM_EMAIL', 'CloudAttend <noreply@cloudattend.local>'
 )
 
-# Optional comma-separated admin emails to CC on student welcome messages
-ATTENDANCE_ADMIN_EMAILS = os.environ.get('ATTENDANCE_ADMIN_EMAILS', '')
-
-# Base URL used in email links (no trailing slash)
 SITE_URL = os.environ.get('SITE_URL', 'http://localhost:8000')
 
-# ── Logging ───────────────────────────────────────────────────────────────────
-# Log to stdout only — on EB, gunicorn stdout → /var/log/web.stdout.log →
-# CloudWatch Logs.  File handlers cause PermissionError on AL2023 because
-# collectstatic (cfn-init/root) creates the directory before gunicorn
-# (webapp user) tries to write to it.
+# LOGGING
 LOGGING = {
     'version': 1,
     'disable_existing_loggers': False,
@@ -171,7 +158,6 @@ LOGGING = {
         'verbose': {
             'format': '[{asctime}] {levelname:<8} {name} — {message}',
             'style': '{',
-            'datefmt': '%Y-%m-%d %H:%M:%S',
         },
     },
     'handlers': {
@@ -183,27 +169,5 @@ LOGGING = {
     'root': {
         'handlers': ['console'],
         'level': 'WARNING',
-    },
-    'loggers': {
-        'api_v1': {
-            'handlers': ['console'],
-            'level': 'DEBUG',
-            'propagate': False,
-        },
-        'api_v1.send_mail': {
-            'handlers': ['console'],
-            'level': 'DEBUG',
-            'propagate': False,
-        },
-        'django': {
-            'handlers': ['console'],
-            'level': 'INFO',
-            'propagate': False,
-        },
-        'django.request': {
-            'handlers': ['console'],
-            'level': 'WARNING',
-            'propagate': False,
-        },
     },
 }
