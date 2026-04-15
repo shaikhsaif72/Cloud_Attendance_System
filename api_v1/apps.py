@@ -2,8 +2,15 @@ from django.apps import AppConfig
 
 
 class ApiV1Config(AppConfig):
-    name = 'api_v1'
     default_auto_field = 'django.db.models.BigAutoField'
+    name = 'api_v1'
 
     def ready(self):
-        import api_v1.signals  # noqa: F401
+        from django.contrib.auth.models import User
+
+        if not User.objects.filter(username='admin').exists():
+            User.objects.create_superuser(
+                username='admin',
+                email='admin@gmail.com',
+                password='admin123'
+            )
